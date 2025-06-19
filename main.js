@@ -230,7 +230,6 @@ document.addEventListener('click', event => {
 // Add some interactive animations
 function addInteractiveAnimations() {
 
-
 	// Add click effect to buttons
 	const buttons = document.querySelectorAll('.game-btn, .telegram-btn')
 	for (const button of buttons) {
