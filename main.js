@@ -291,5 +291,5 @@ document.addEventListener('DOMContentLoaded', () => {
 	// Add welcome animation
 	setTimeout(() => {
 		showNotification(`🎉 ${translations[currentLanguage].gameDescription}`)
-	}, 1000)
+	}, 10)
 })
