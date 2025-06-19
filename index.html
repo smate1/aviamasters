@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-translate="pageTitle">Gaming Landing - Лучшая онлайн игра</title>
+  <meta name="description" content="Лучшая онлайн игра с большими выигрышами! Бонус +500% к депозиту!">
+  <link rel="icon" type="image/svg+xml" href="/vite.svg">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background-attachment: fixed;
+      overflow-x: hidden;
+    }
+
+    .container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      position: relative;
+    }
+
+    /* Language Selector */
+    .language-selector {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+
+    .language-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: scale 0.3s;
+      backdrop-filter: blur(10px);
+    }
+
+    .language-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.05);
+    }
+
+    .language-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: rgba(0, 0, 0, 0.8);
+      border-radius: 8px;
+      padding: 10px;
+      display: none;
+      min-width: 150px;
+    }
+
+    .language-dropdown.show {
+      display: block;
+    }
+
+    .language-option {
+      display: block;
+      color: white;
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      transition: background 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .language-option:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Main Card */
+    .game-card {
+      background: linear-gradient(135deg, rgba(30, 0, 60, 0.9), rgba(0, 30, 60, 0.9));
+      border: 3px solid #00ff88;
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      max-width: 500px;
+      width: 100%;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+      from {
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      to {
+        box-shadow: 0 20px 40px rgba(0, 255, 136, 0.3);
+      }
+    }
+
+    .game-title {
+      color: #00ff88;
+      font-size: 2.5rem;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+      margin-bottom: 20px;
+      letter-spacing: 2px;
+    }
+
+    .bonus-text {
+      color: white;
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+
+    .promo-code {
+      color: #ffff00;
+      font-size: 1.1rem;
+      margin-bottom: 30px;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .brand {
+      color: #00ff88;
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 30px;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .game-btn {
+      background: linear-gradient(45deg, #ff0080, #ff8000);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin: 10px;
+      text-decoration: none;
+      display: inline-block;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all .3s;
+    }
+
+    .game-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 10px 20px rgba(255, 0, 128, 0.3);
+    }
+
+    .telegram-section {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 20px;
+      margin-top: 30px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .telegram-question {
+      color: white;
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+
+    .telegram-text {
+      color: #00ff88;
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+    }
+
+    .telegram-btn {
+      background: #0088cc;
+      color: white;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 25px;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+
+    .telegram-btn:hover {
+      background: #006699;
+      transform: scale(1.05);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .game-card {
+        padding: 30px 20px;
+        margin: 20px;
+      }
+
+      .game-title {
+        font-size: 2rem;
+      }
+
+      .bonus-text {
+        font-size: 1rem;
+      }
+
+      .game-btn {
+        padding: 12px 25px;
+        font-size: 1rem;
+      }
+
+      .language-selector {
+        top: 10px;
+        right: 10px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .game-title {
+        font-size: 1.5rem;
+      }
+
+      .game-card {
+        padding: 20px 15px;
+      }
+    }
+
+    /* Background Animation */
+    .background-shapes {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .shape {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .shape:nth-child(1) {
+      width: 80px;
+      height: 80px;
+      top: 20%;
+      left: 10%;
+      animation-delay: 0s;
+    }
+
+    .shape:nth-child(2) {
+      width: 120px;
+      height: 120px;
+      top: 60%;
+      right: 20%;
+      animation-delay: 2s;
+    }
+
+    .shape:nth-child(3) {
+      width: 60px;
+      height: 60px;
+      bottom: 20%;
+      left: 20%;
+      animation-delay: 4s;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-20px);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="background-shapes">
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+  </div>
+
+  <div class="language-selector">
+    <button class="language-btn" onclick="toggleLanguageDropdown()">
+      <span id="currentLang">🇷🇺 RU</span>
+    </button>
+    <div class="language-dropdown" id="languageDropdown">
+      <a href="#" class="language-option" onclick="changeLanguage('ru')">🇷🇺 Русский</a>
+      <a href="#" class="language-option" onclick="changeLanguage('kz')">🇰🇿 Қазақша</a>
+      <a href="#" class="language-option" onclick="changeLanguage('ua')">🇺🇦 Українська</a>
+      <a href="#" class="language-option" onclick="changeLanguage('en')">🇺🇸 English</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="game-card">
+      <h1 class="game-title" data-translate="gameHere">ИГРА ЗДЕСЬ</h1>
+
+      <p class="bonus-text" data-translate="bonus">БОНУС: +500% К ДЕПОЗИТУ</p>
+
+      <p class="promo-code" data-translate="promoCode">ПРОМОКОД: LEPRO12</p>
+
+      <div class="brand" data-translate="brand">🎮 AVIAMASTERS</div>
+
+      <a href="#" class="game-btn" data-translate="startGame" onclick="startGame()">НАЧАТЬ ИГРУ</a>
+
+      <div class="telegram-section">
+        <p class="telegram-question" data-translate="wantToWin">Хочешь убедиться?</p>
+        <p class="telegram-text" data-translate="joinTelegram">Вступай в Telegram канал — мой путь к 1,000,000$!</p>
+        <a href="https://t.me/aviamasters_official" class="telegram-btn" data-translate="telegramChannel"
+          target="_blank">Telegram канал</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="./main.js"></script>
+</body>
+
+</html>
