@@ -51,7 +51,7 @@ let currentLanguage = 'ru'
 class GameAnalytics {
 	constructor() {
 		// Генеруємо або отримуємо унікальний ID проекту
-		this.projectId = this.getOrCreateProjectId();
+		this.projectId = this.getOrCreateProjectId()
 
 		this.sessionData = {
 			sessionId: this.generateSessionId(),
@@ -67,7 +67,7 @@ class GameAnalytics {
 			country: null,
 			city: null,
 			countryCode: null,
-			projectId: this.projectId // Додаємо ID проекту до кожної події
+			projectId: this.projectId, // Додаємо ID проекту до кожної події
 		}
 		this.uniqueVisitorKey = 'gameUniqueVisitor'
 		this.analyticsKey = 'gameAnalytics'
@@ -80,7 +80,7 @@ class GameAnalytics {
 			// Використовуємо унікальний bin для кожного проекту
 			binId: null, // Буде встановлено в getOrCreateBinId()
 			apiKey: '$2a$10$Vu6QKl3.JJ2ZQSn.YMGQNejkOB5bF9sLj2PU1Y2zl7O8hJCZVp3Jm',
-			baseUrl: 'https://api.jsonbin.io/v3/b'
+			baseUrl: 'https://api.jsonbin.io/v3/b',
 		}
 
 		this.init()
@@ -88,44 +88,44 @@ class GameAnalytics {
 
 	// Створити або отримати унікальний ID проекту
 	getOrCreateProjectId() {
-		let projectId = localStorage.getItem(this.projectIdKey);
+		let projectId = localStorage.getItem(this.projectIdKey)
 		if (!projectId) {
 			// Створюємо унікальний ID на основі домену + випадкова строка
-			const domain = window.location.hostname || 'localhost';
-			const randomStr = Math.random().toString(36).substring(2, 15);
-			const timestamp = Date.now().toString(36);
-			projectId = `aviamasters_${domain}_${timestamp}_${randomStr}`;
-			localStorage.setItem(this.projectIdKey, projectId);
-			console.log('🆔 Створено новий Project ID:', projectId);
+			const domain = window.location.hostname || 'localhost'
+			const randomStr = Math.random().toString(36).substring(2, 15)
+			const timestamp = Date.now().toString(36)
+			projectId = `aviamasters_${domain}_${timestamp}_${randomStr}`
+			localStorage.setItem(this.projectIdKey, projectId)
+			console.log('🆔 Створено новий Project ID:', projectId)
 		} else {
-			console.log('🆔 Використовується існуючий Project ID:', projectId);
+			console.log('🆔 Використовується існуючий Project ID:', projectId)
 		}
-		return projectId;
+		return projectId
 	}
 
 	// Отримати або створити унікальний bin ID
 	async getOrCreateBinId() {
-		const binIdKey = `aviamasters_bin_id_${this.projectId}`;
-		let binId = localStorage.getItem(binIdKey);
+		const binIdKey = `aviamasters_bin_id_${this.projectId}`
+		let binId = localStorage.getItem(binIdKey)
 
 		if (!binId) {
 			// Створюємо новий bin на сервері
 			try {
-				const response = await this.createNewBin();
+				const response = await this.createNewBin()
 				if (response && response.metadata && response.metadata.id) {
-					binId = response.metadata.id;
-					localStorage.setItem(binIdKey, binId);
-					console.log('🏗️ Створено новий Bin ID:', binId);
+					binId = response.metadata.id
+					localStorage.setItem(binIdKey, binId)
+					console.log('🏗️ Створено новий Bin ID:', binId)
 				}
 			} catch (error) {
-				console.error('Помилка створення bin:', error);
+				console.error('Помилка створення bin:', error)
 				// Використовуємо резервний bin
-				binId = '6792d4ccad19ca34f8cf4c72';
+				binId = '6792d4ccad19ca34f8cf4c72'
 			}
 		}
 
-		this.serverConfig.binId = binId;
-		return binId;
+		this.serverConfig.binId = binId
+		return binId
 	}
 
 	// Створити новий bin на сервері
@@ -136,12 +136,12 @@ class GameAnalytics {
 				projectId: this.projectId,
 				domain: window.location.hostname,
 				created: new Date().toISOString(),
-				version: '1.0'
+				version: '1.0',
 			},
 			events: [],
 			lastUpdated: new Date().toISOString(),
-			totalEvents: 0
-		};
+			totalEvents: 0,
+		}
 
 		const response = await fetch(this.serverConfig.baseUrl, {
 			method: 'POST',
@@ -149,16 +149,16 @@ class GameAnalytics {
 				'Content-Type': 'application/json',
 				'X-Master-Key': this.serverConfig.apiKey,
 				'X-Bin-Name': `aviamasters-${this.projectId}`,
-				'X-Bin-Private': 'false'
+				'X-Bin-Private': 'false',
 			},
 			body: JSON.stringify(initialData),
-		});
+		})
 
 		if (response.ok) {
-			const result = await response.json();
-			return result;
+			const result = await response.json()
+			return result
 		} else {
-			throw new Error(`Failed to create bin: ${response.status}`);
+			throw new Error(`Failed to create bin: ${response.status}`)
 		}
 	}
 
@@ -282,7 +282,7 @@ class GameAnalytics {
 
 	async init() {
 		// Отримуємо або створюємо bin ID
-		await this.getOrCreateBinId();
+		await this.getOrCreateBinId()
 
 		// Получаем IP информацию
 		const ipInfo = await this.getIpInfo()
@@ -387,14 +387,17 @@ class GameAnalytics {
 			serverData.totalEvents = serverData.events.length
 
 			// Відправляємо оновлені дані на сервер
-			const response = await fetch(`${this.serverConfig.baseUrl}/${this.serverConfig.binId}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-Master-Key': this.serverConfig.apiKey,
-				},
-				body: JSON.stringify(serverData),
-			})
+			const response = await fetch(
+				`${this.serverConfig.baseUrl}/${this.serverConfig.binId}`,
+				{
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-Master-Key': this.serverConfig.apiKey,
+					},
+					body: JSON.stringify(serverData),
+				}
+			)
 
 			if (response.ok) {
 				console.log('✅ Дані успішно синхронізовані з сервером')
@@ -413,15 +416,20 @@ class GameAnalytics {
 	// Отримати дані з сервера
 	async getServerData() {
 		try {
-			const response = await fetch(`${this.serverConfig.baseUrl}/${this.serverConfig.binId}/latest`, {
-				headers: {
-					'X-Master-Key': this.serverConfig.apiKey,
-				},
-			})
+			const response = await fetch(
+				`${this.serverConfig.baseUrl}/${this.serverConfig.binId}/latest`,
+				{
+					headers: {
+						'X-Master-Key': this.serverConfig.apiKey,
+					},
+				}
+			)
 
 			if (response.ok) {
 				const result = await response.json()
-				return result.record || { events: [], metadata: { site: 'aviamasters' } }
+				return (
+					result.record || { events: [], metadata: { site: 'aviamasters' } }
+				)
 			} else if (response.status === 404) {
 				// Bin не існує, створюємо новий
 				return await this.createServerBin()
@@ -441,11 +449,11 @@ class GameAnalytics {
 				metadata: {
 					site: 'aviamasters',
 					created: new Date().toISOString(),
-					version: '1.0'
+					version: '1.0',
 				},
 				events: [],
 				lastUpdated: new Date().toISOString(),
-				totalEvents: 0
+				totalEvents: 0,
 			}
 
 			const response = await fetch(this.serverConfig.baseUrl, {
@@ -453,7 +461,7 @@ class GameAnalytics {
 				headers: {
 					'Content-Type': 'application/json',
 					'X-Master-Key': this.serverConfig.apiKey,
-					'X-Bin-Name': 'aviamasters-analytics'
+					'X-Bin-Name': 'aviamasters-analytics',
 				},
 				body: JSON.stringify(initialData),
 			})
@@ -475,11 +483,13 @@ class GameAnalytics {
 
 	// Зберегти неуспішні синхронізації для повторної спроби
 	saveFailedSync(eventData) {
-		const failedSyncs = JSON.parse(localStorage.getItem('gameFailedSyncs') || '[]')
+		const failedSyncs = JSON.parse(
+			localStorage.getItem('gameFailedSyncs') || '[]'
+		)
 		failedSyncs.push({
 			data: eventData,
 			timestamp: new Date().toISOString(),
-			retryCount: 0
+			retryCount: 0,
 		})
 
 		// Обмежуємо кількість невдалих синхронізацій
@@ -505,15 +515,20 @@ class GameAnalytics {
 
 	// Повторна спроба неуспішних синхронізацій
 	async retryFailedSyncs() {
-		const failedSyncs = JSON.parse(localStorage.getItem('gameFailedSyncs') || '[]')
+		const failedSyncs = JSON.parse(
+			localStorage.getItem('gameFailedSyncs') || '[]'
+		)
 		if (failedSyncs.length === 0) return
 
-		console.log(`🔄 Спроба повторної синхронізації ${failedSyncs.length} записів...`)
+		console.log(
+			`🔄 Спроба повторної синхронізації ${failedSyncs.length} записів...`
+		)
 
 		const remainingFailed = []
 
 		for (const failedSync of failedSyncs) {
-			if (failedSync.retryCount < 5) { // Максимум 5 спроб
+			if (failedSync.retryCount < 5) {
+				// Максимум 5 спроб
 				try {
 					await this.syncToServer(failedSync.data)
 					console.log('✅ Повторна синхронізація успішна')
@@ -534,7 +549,9 @@ class GameAnalytics {
 			const serverData = await this.getServerData()
 
 			// Отримуємо локальні дані
-			const localData = JSON.parse(localStorage.getItem(this.analyticsKey) || '[]')
+			const localData = JSON.parse(
+				localStorage.getItem(this.analyticsKey) || '[]'
+			)
 
 			// Об'єднуємо дані (сервер має пріоритет)
 			const allEvents = [...(serverData.events || []), ...localData]
@@ -572,12 +589,12 @@ class GameAnalytics {
 
 	// Додати статичний метод для отримання projectId (для використання в track.html)
 	static getProjectId() {
-		return localStorage.getItem('aviamasters_project_id');
+		return localStorage.getItem('aviamasters_project_id')
 	}
 
 	// Додати статичний метод для отримання binId (для використання в track.html)
 	static getBinId(projectId) {
-		return localStorage.getItem(`aviamasters_bin_id_${projectId}`);
+		return localStorage.getItem(`aviamasters_bin_id_${projectId}`)
 	}
 }
 
