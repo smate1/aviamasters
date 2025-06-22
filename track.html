@@ -237,6 +237,42 @@
       color: #666;
     }
 
+    .source-cell {
+      max-width: 200px;
+      word-wrap: break-word;
+      font-size: 0.85rem;
+      color: #666;
+      line-height: 1.3;
+    }
+
+    .source-direct {
+      color: #28a745;
+      font-weight: bold;
+    }
+
+    .source-search {
+      color: #007bff;
+    }
+
+    .source-social {
+      color: #e83e8c;
+    }
+
+    .source-unknown {
+      color: #6c757d;
+      font-style: italic;
+    }
+
+    .export-info {
+      margin-top: 20px;
+      padding: 15px;
+      background: rgba(52, 152, 219, 0.1);
+      border-left: 4px solid #3498db;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      color: #555;
+    }
+
     @media (max-width: 768px) {
       .container {
         padding: 20px;
@@ -265,16 +301,6 @@
         padding: 8px;
       }
     }
-
-    .export-info {
-      margin-top: 20px;
-      padding: 15px;
-      background: rgba(52, 152, 219, 0.1);
-      border-left: 4px solid #3498db;
-      border-radius: 4px;
-      font-size: 0.9rem;
-      color: #555;
-    }
   </style>
 </head>
 
@@ -301,6 +327,14 @@
       <div class="stat-card">
         <div class="stat-value" id="uniqueCountries">0</div>
         <div class="stat-label">Стран</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="totalClicks">0</div>
+        <div class="stat-label">Кликов</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="uniqueSources">0</div>
+        <div class="stat-label">Источников</div>
       </div>
     </div>
 
@@ -334,6 +368,32 @@
           <option value="event">События</option>
         </select>
       </div>
+
+      <div class="filter-group">
+        <label for="deviceFilter">Устройство:</label>
+        <select id="deviceFilter" onchange="filterTable()">
+          <option value="">Все</option>
+          <option value="Desktop">Десктоп</option>
+          <option value="Mobile">Мобильный</option>
+          <option value="Tablet">Планшет</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="uniqueFilter">Показывать:</label>
+        <select id="uniqueFilter" onchange="filterTable()">
+          <option value="">Все</option>
+          <option value="unique">Только уникальные IP</option>
+          <option value="repeat">Только повторные IP</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="sourceFilter">Источник:</label>
+        <select id="sourceFilter" onchange="filterTable()">
+          <option value="">Все</option>
+        </select>
+      </div>
     </div>
 
     <div class="table-container">
@@ -346,6 +406,7 @@
             <th>Время</th>
             <th>Устройство</th>
             <th>Браузер</th>
+            <th>Источник</th>
             <th>Тип</th>
             <th>Действие</th>
             <th>Детали</th>
@@ -353,7 +414,7 @@
         </thead>
         <tbody id="logTableBody">
           <tr>
-            <td colspan="9" class="loading">Загрузка данных...</td>
+            <td colspan="10" class="loading">Загрузка данных...</td>
           </tr>
         </tbody>
       </table>
@@ -385,35 +446,6 @@
       return flags[countryCode] || '🌍';
     }
 
-    // Загрузка данных
-    function loadData() {
-      try {
-        const analyticsData = JSON.parse(localStorage.getItem('gameAnalytics') || '[]');
-
-        allData = analyticsData.map(item => ({
-          ...item,
-          ip: item.ip || 'Unknown',
-          country: item.country || 'Unknown',
-          countryCode: item.countryCode || 'XX',
-          city: item.city || 'Unknown',
-          deviceType: item.deviceType || 'Unknown',
-          browser: item.browser || 'Unknown',
-          timestamp: item.timestamp || new Date().toISOString(),
-          type: item.type || 'unknown',
-          action: item.action || item.eventType || 'visit',
-          details: item.details || item.action || ''
-        }));
-
-        updateStats();
-        updateCountryFilter();
-        filterTable();
-      } catch (error) {
-        console.error('Ошибка загрузки данных:', error);
-        document.getElementById('logTableBody').innerHTML =
-          '<tr><td colspan="9" class="no-data">Ошибка загрузки данных</td></tr>';
-      }
-    }
-
     // Обновление статистики
     function updateStats() {
       const uniqueIPs = new Set(allData.map(item => item.ip)).size;
@@ -426,10 +458,18 @@
 
       const uniqueCountries = new Set(allData.map(item => item.country)).size;
 
+      // Подсчет кликов
+      const totalClicks = allData.filter(item => item.type === 'click').length;
+
+      // Подсчет уникальных источников
+      const uniqueSources = new Set(allData.map(item => item.referrer || item.source || 'Unknown')).size;
+
       document.getElementById('uniqueIPs').textContent = uniqueIPs;
       document.getElementById('totalRecords').textContent = totalRecords;
       document.getElementById('todayVisits').textContent = todayVisits;
       document.getElementById('uniqueCountries').textContent = uniqueCountries;
+      document.getElementById('totalClicks').textContent = totalClicks;
+      document.getElementById('uniqueSources').textContent = uniqueSources;
     }
 
     // Обновление фильтра стран
@@ -450,15 +490,85 @@
       });
     }
 
+    // Обновление фильтра источников
+    function updateSourceFilter() {
+      const sourceFilter = document.getElementById('sourceFilter');
+      const sources = [...new Set(allData.map(item => item.referrer || item.source || 'Unknown'))].sort();
+
+      // Очищаем существующие опции кроме "Все"
+      sourceFilter.innerHTML = '<option value="">Все</option>';
+
+      sources.forEach(source => {
+        if (source && source !== 'Unknown') {
+          const option = document.createElement('option');
+          option.value = source;
+          option.textContent = source;
+          sourceFilter.appendChild(option);
+        }
+      });
+    }
+
+    // Загрузка данных
+    function loadData() {
+      try {
+        const analyticsData = JSON.parse(localStorage.getItem('gameAnalytics') || '[]');
+
+        allData = analyticsData.map(item => ({
+          ...item,
+          ip: item.ip || 'Unknown',
+          country: item.country || 'Unknown',
+          countryCode: item.countryCode || 'XX',
+          city: item.city || 'Unknown',
+          deviceType: item.deviceType || 'Unknown',
+          browser: item.browser || 'Unknown',
+          timestamp: item.timestamp || new Date().toISOString(),
+          type: item.type || 'unknown',
+          action: item.action || item.eventType || 'visit',
+          details: item.details || item.action || '',
+          source: item.referrer || item.source || 'Unknown'
+        }));
+
+        updateStats();
+        updateCountryFilter();
+        updateSourceFilter();
+        filterTable();
+      } catch (error) {
+        console.error('Ошибка загрузки данных:', error);
+        document.getElementById('logTableBody').innerHTML =
+          '<tr><td colspan="10" class="no-data">Ошибка загрузки данных</td></tr>';
+      }
+    }
+
     // Фильтрация таблицы
     function filterTable() {
       const countryFilter = document.getElementById('countryFilter').value;
       const typeFilter = document.getElementById('typeFilter').value;
+      const deviceFilter = document.getElementById('deviceFilter').value;
+      const uniqueFilter = document.getElementById('uniqueFilter').value;
+      const sourceFilter = document.getElementById('sourceFilter').value;
+
+      // Для фильтра уникальных IP нужно определить какие IP уникальные
+      const ipCounts = {};
+      allData.forEach(item => {
+        if (item.ip && item.ip !== 'Unknown') {
+          ipCounts[item.ip] = (ipCounts[item.ip] || 0) + 1;
+        }
+      });
 
       filteredData = allData.filter(item => {
         const countryMatch = !countryFilter || item.country === countryFilter;
         const typeMatch = !typeFilter || item.type === typeFilter;
-        return countryMatch && typeMatch;
+        const deviceMatch = !deviceFilter || item.deviceType === deviceFilter;
+        const sourceMatch = !sourceFilter || item.source === sourceFilter;
+
+        let uniqueMatch = true;
+        if (uniqueFilter === 'unique') {
+          uniqueMatch = ipCounts[item.ip] === 1;
+        } else if (uniqueFilter === 'repeat') {
+          uniqueMatch = ipCounts[item.ip] > 1;
+        }
+
+        return countryMatch && typeMatch && deviceMatch && sourceMatch && uniqueMatch;
       });
 
       renderTable();
@@ -469,7 +579,7 @@
       const tbody = document.getElementById('logTableBody');
 
       if (filteredData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="no-data">Нет данных для отображения</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="no-data">Нет данных для отображения</td></tr>';
         return;
       }
 
@@ -479,6 +589,35 @@
           const date = new Date(item.timestamp);
           const timeStr = date.toLocaleString('ru-RU');
           const flag = getCountryFlag(item.countryCode);
+
+          // Обработка деталей события
+          let details = item.details || '';
+          try {
+            const parsedDetails = JSON.parse(details);
+            if (typeof parsedDetails === 'object') {
+              if (parsedDetails.elementText) {
+                details = parsedDetails.elementText;
+              } else if (parsedDetails.isUniqueVisitor !== undefined) {
+                details = parsedDetails.isUniqueVisitor ? 'Уникальный визит' : `Повторный визит (${parsedDetails.totalVisitsFromThisIP})`;
+              } else {
+                details = Object.entries(parsedDetails).map(([k, v]) => `${k}: ${v}`).join(', ');
+              }
+            }
+          } catch (e) {
+            // Если не JSON, оставляем как есть
+          }
+
+          // Получаем источник и определяем его класс
+          const source = item.referrer || item.source || 'Unknown';
+          let sourceClass = 'source-unknown';
+
+          if (source === 'Прямой переход') {
+            sourceClass = 'source-direct';
+          } else if (source.includes('Google') || source.includes('Yandex') || source.includes('Bing')) {
+            sourceClass = 'source-search';
+          } else if (source.includes('Facebook') || source.includes('VKontakte') || source.includes('Telegram') || source.includes('Instagram') || source.includes('YouTube') || source.includes('Twitter') || source.includes('TikTok')) {
+            sourceClass = 'source-social';
+          }
 
           return `
                         <tr>
@@ -491,9 +630,10 @@
                             <td class="time-cell">${timeStr}</td>
                             <td class="device-${item.deviceType.toLowerCase()}">${item.deviceType}</td>
                             <td>${item.browser}</td>
+                            <td class="source-cell ${sourceClass}">${source}</td>
                             <td><span class="action-cell action-${item.type}">${item.type}</span></td>
                             <td>${item.action}</td>
-                            <td>${item.details}</td>
+                            <td>${details}</td>
                         </tr>
                     `;
         }).join('');
@@ -522,7 +662,7 @@
         return;
       }
 
-      const headers = ['IP', 'Страна', 'Город', 'Время', 'Устройство', 'Браузер', 'Тип', 'Действие', 'Детали'];
+      const headers = ['IP', 'Страна', 'Город', 'Время', 'Устройство', 'Браузер', 'Источник', 'Тип', 'Действие', 'Детали'];
       const csvContent = [
         headers.join(','),
         ...filteredData.map(item => [
@@ -532,6 +672,7 @@
           new Date(item.timestamp).toLocaleString('ru-RU'),
           item.deviceType,
           item.browser,
+          item.source,
           item.type,
           item.action,
           item.details
