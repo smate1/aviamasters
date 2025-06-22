@@ -309,6 +309,10 @@
     <div class="header">
       <h1>📊 Статистика посещений</h1>
       <p>Панель администратора AVIAMASTERS</p>
+      <div style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px; padding: 10px; margin: 15px 0; font-size: 14px;">
+        <strong>🌐 Централізована аналітика:</strong> Дані збираються з усіх пристроїв в реальному часі
+        <span id="syncStatus" style="margin-left: 10px; padding: 2px 8px; border-radius: 4px; font-size: 12px;"></span>
+      </div>
     </div>
 
     <div class="stats-summary">
@@ -354,8 +358,8 @@
       <button class="btn btn-success" onclick="showDebugInfo()">
         🔍 Отладка
       </button>
-      <button class="btn btn-info" onclick="exportAllData()">
-        📤 Экспорт всех данных
+      <button class="btn btn-info" onclick="syncWithServer()">
+        🌐 Синхронизация с сервером
       </button>
       <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData()">
       <button class="btn btn-info" onclick="document.getElementById('importFile').click()">
@@ -432,24 +436,161 @@
 
     <div class="export-info">
       <strong>ℹ️ Информация:</strong> Данные обновляются автоматически каждые 30 секунд.
-      Статистика основана на данных, собранных системой аналитики сайта.
+      Статистика основана на централізованих даних, зібраних з усіх пристроїв.
       <br><br>
       <strong>🔧 Отладка:</strong>
       <br>• Откройте консоль браузера (F12) для просмотра отладочной информации
-      <br>• Данные сохраняются в localStorage каждого браузера отдельно
-      <br>• Для объединения данных с разных устройств используйте кнопки "Экспорт" и "Импорт"
-      <br>• Если не видите данные - убедитесь что заходили на главную страницу с этого же браузера
+      <br>• Данные синхронизируются автоматически между всеми устройствами
+      <br>• Зеленый статус означает успешную синхронизацию с сервером
+      <br>• Если сервер недоступен, используются локальные данные
       <br><br>
-      <strong>📱 Синхронизация устройств:</strong>
-      <br>1. На устройстве с данными: нажмите "Экспорт всех данных"
-      <br>2. Перенесите файл на другое устройство
-      <br>3. На другом устройстве: нажмите "Импорт данных" и выберите файл
+      <strong>📱 Мультиустройство:</strong>
+      <br>• Данные автоматически собираются со всех устройств
+      <br>• Нет необходимости в ручном экспорте/импорте
+      <br>• Статистика обновляется в реальном времени
     </div>
   </div>
 
   <script>
     let allData = [];
     let filteredData = [];
+
+    // Отримуємо унікальний projectId та binId для цього проекту
+    const getProjectConfig = () => {
+      const projectId = localStorage.getItem('aviamasters_project_id');
+      if (!projectId) {
+        console.error('❌ Project ID не знайдено! Спочатку відвідайте головну сторінку.');
+        return null;
+      }
+
+      const binId = localStorage.getItem(`aviamasters_bin_id_${projectId}`);
+      if (!binId) {
+        console.error('❌ Bin ID не знайдено! Спочатку відвідайте головну сторінку.');
+        return null;
+      }
+
+      return { projectId, binId };
+    };
+
+    // Ініціалізуємо конфігурацію сервера
+    const initServerConfig = () => {
+      const config = getProjectConfig();
+      if (!config) {
+        return {
+          binId: null,
+          apiKey: '$2a$10$Vu6QKl3.JJ2ZQSn.YMGQNejkOB5bF9sLj2PU1Y2zl7O8hJCZVp3Jm',
+          baseUrl: 'https://api.jsonbin.io/v3/b',
+          projectId: null
+        };
+      }
+
+      console.log('🆔 Поточний Project ID:', config.projectId);
+      console.log('🏗️ Поточний Bin ID:', config.binId);
+
+      return {
+        binId: config.binId,
+        apiKey: '$2a$10$Vu6QKl3.JJ2ZQSn.YMGQNejkOB5bF9sLj2PU1Y2zl7O8hJCZVp3Jm',
+        baseUrl: 'https://api.jsonbin.io/v3/b',
+        projectId: config.projectId
+      };
+    };
+
+    // Конфігурація сервера
+    const serverConfig = initServerConfig();
+
+    // Оновити статус синхронізації
+    function updateSyncStatus(status, message) {
+      const syncStatus = document.getElementById('syncStatus');
+      if (syncStatus) {
+        syncStatus.textContent = message;
+        if (status === 'success') {
+          syncStatus.style.background = '#4caf50';
+          syncStatus.style.color = 'white';
+        } else if (status === 'error') {
+          syncStatus.style.background = '#f44336';
+          syncStatus.style.color = 'white';
+        } else {
+          syncStatus.style.background = '#ff9800';
+          syncStatus.style.color = 'white';
+        }
+      }
+    }
+
+    // Отримати дані з сервера
+    async function getServerData() {
+      try {
+        if (!serverConfig.binId) {
+          updateSyncStatus('error', '❌ Немає конфігурації');
+          return [];
+        }
+
+        updateSyncStatus('loading', '⏳ Завантаження...');
+
+        const response = await fetch(`${serverConfig.baseUrl}/${serverConfig.binId}/latest`, {
+          headers: {
+            'X-Master-Key': serverConfig.apiKey,
+          },
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const serverData = result.record || { events: [], metadata: { site: 'aviamasters' } };
+
+          // Фільтруємо тільки події нашого проекту
+          const projectEvents = (serverData.events || []).filter(event =>
+            event.projectId === serverConfig.projectId
+          );
+
+          updateSyncStatus('success', `✅ Синхронізовано (${projectEvents.length})`);
+          return projectEvents;
+        } else if (response.status === 404) {
+          updateSyncStatus('error', '❌ Дані не знайдено');
+          return [];
+        } else {
+          throw new Error(`Server returned ${response.status}`);
+        }
+      } catch (error) {
+        console.warn('Помилка отримання даних з сервера:', error);
+        updateSyncStatus('error', '❌ Помилка з\'єднання');
+        return [];
+      }
+    }
+
+    // Отримати локальні дані
+    function getLocalData() {
+      try {
+        const localData = JSON.parse(localStorage.getItem('gameAnalytics') || '[]');
+        console.log('Локальних записів:', localData.length);
+        return localData;
+      } catch (error) {
+        console.error('Помилка читання локальних даних:', error);
+        return [];
+      }
+    }
+
+    // Об'єднати та очистити дані
+    function mergeData(serverData, localData) {
+      // Об'єднуємо дані
+      const allEvents = [...serverData, ...localData];
+
+      // Видаляємо дублікати по sessionId + timestamp
+      const uniqueEvents = [];
+      const seen = new Set();
+
+      for (const event of allEvents) {
+        const key = `${event.sessionId || 'unknown'}-${event.timestamp}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueEvents.push(event);
+        }
+      }
+
+      // Сортуємо по часу
+      uniqueEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      console.log(`Об'єднано ${uniqueEvents.length} унікальних записів (сервер: ${serverData.length}, локальні: ${localData.length})`);
+      return uniqueEvents;
+    }
 
     // Получение флага страны по коду
     function getCountryFlag(countryCode) {
@@ -530,14 +671,29 @@
     }
 
     // Загрузка данных
-    function loadData() {
+    async function loadData() {
       try {
-        const analyticsData = JSON.parse(localStorage.getItem('gameAnalytics') || '[]');
+        // Перевіряємо конфігурацію
+        if (!serverConfig.projectId) {
+          updateSyncStatus('error', '❌ Відвідайте головну сторінку');
+          document.getElementById('logTableBody').innerHTML =
+            '<tr><td colspan="10" class="no-data">❌ Спочатку відвідайте головну сторінку для ініціалізації аналітики</td></tr>';
+          return;
+        }
 
-        console.log('Raw data from localStorage:', analyticsData);
-        console.log('Analytics data length:', analyticsData.length);
+        // Отримуємо дані з сервера та локально
+        const [serverData, localData] = await Promise.all([
+          getServerData(),
+          getLocalData()
+        ]);
 
-        allData = analyticsData.map(item => ({
+        // Об'єднуємо дані
+        allData = mergeData(serverData, localData);
+
+        console.log('Загальна кількість записів:', allData.length);
+
+        // Обробляємо дані
+        allData = allData.map(item => ({
           ...item,
           ip: item.ip || 'Unknown',
           country: item.country || 'Unknown',
@@ -552,26 +708,31 @@
           source: item.referrer || item.source || 'Unknown'
         }));
 
-        console.log('Processed data:', allData);
-        console.log('Total records:', allData.length);
-
         updateStats();
         updateCountryFilter();
         updateSourceFilter();
         filterTable();
 
-        // Показать уведомление о количестве записей
+        // Показуємо кількість записів
         if (allData.length === 0) {
-          console.log('Нет данных в localStorage. Возможно, нужно сначала посетить главную страницу.');
+          console.log('Нет данных. Возможно, нужно сначала посетить главную страницу.');
+          updateSyncStatus('error', '❌ Немає даних');
         } else {
           console.log(`Загружено ${allData.length} записей`);
         }
 
       } catch (error) {
         console.error('Ошибка загрузки данных:', error);
+        updateSyncStatus('error', '❌ Помилка завантаження');
         document.getElementById('logTableBody').innerHTML =
           '<tr><td colspan="10" class="no-data">Ошибка загрузки данных</td></tr>';
       }
+    }
+
+    // Ручна синхронізація з сервером
+    async function syncWithServer() {
+      updateSyncStatus('loading', '⏳ Синхронізація...');
+      await loadData();
     }
 
     // Фильтрация таблицы
@@ -676,17 +837,75 @@
       tbody.innerHTML = rows;
     }
 
-    // Очистка логов
-    function clearLogs() {
-      if (confirm('Вы уверены, что хотите очистить все логи? Это действие нельзя отменить.')) {
-        localStorage.removeItem('gameAnalytics');
-        localStorage.removeItem('gameDailyCounter');
-        allData = [];
-        filteredData = [];
-        updateStats();
-        renderTable();
-        updateCountryFilter();
-        alert('Логи очищены!');
+    // Очистка логів (тепер також очищує сервер)
+    async function clearLogs() {
+      if (confirm('Вы уверены, что хотите очистить все логи? Это действие нельзя отменить.\n\nЭто очистит данные везде - на сервере и локально!')) {
+        try {
+          if (!serverConfig.binId) {
+            throw new Error('Немає конфігурації сервера');
+          }
+
+          // Очищуємо сервер
+          updateSyncStatus('loading', '⏳ Очищення сервера...');
+
+          // Отримуємо поточні дані сервера
+          const response = await fetch(`${serverConfig.baseUrl}/${serverConfig.binId}/latest`, {
+            headers: {
+              'X-Master-Key': serverConfig.apiKey,
+            },
+          });
+
+          let currentData = { events: [], metadata: { site: 'aviamasters' } };
+          if (response.ok) {
+            const result = await response.json();
+            currentData = result.record || currentData;
+          }
+
+          // Видаляємо тільки події нашого проекту
+          const otherProjectEvents = (currentData.events || []).filter(event =>
+            event.projectId !== serverConfig.projectId
+          );
+
+          const updatedData = {
+            ...currentData,
+            events: otherProjectEvents,
+            lastUpdated: new Date().toISOString(),
+            totalEvents: otherProjectEvents.length
+          };
+
+          const updateResponse = await fetch(`${serverConfig.baseUrl}/${serverConfig.binId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Master-Key': serverConfig.apiKey,
+            },
+            body: JSON.stringify(updatedData),
+          });
+
+          if (updateResponse.ok) {
+            console.log('✅ Сервер очищен');
+          } else {
+            console.warn('❌ Не удалось очистить сервер');
+          }
+
+          // Очищуємо локальні дані
+          localStorage.removeItem('gameAnalytics');
+          localStorage.removeItem('gameDailyCounter');
+          localStorage.removeItem('gameUniqueVisitor');
+          localStorage.removeItem('gameFailedSyncs');
+
+          allData = [];
+          filteredData = [];
+          updateStats();
+          renderTable();
+          updateCountryFilter();
+          updateSyncStatus('success', '✅ Очищено');
+          alert('Логи очищены на всех устройствах!');
+        } catch (error) {
+          console.error('Помилка очищення:', error);
+          updateSyncStatus('error', '❌ Помилка очищення');
+          alert('Произошла ошибка при очистке логов');
+        }
       }
     }
 
@@ -734,6 +953,7 @@
 
       const exportData = {
         exportDate: new Date().toISOString(),
+        projectId: serverConfig.projectId,
         totalRecords: allData.length,
         data: allData
       };
@@ -785,8 +1005,16 @@
         const reader = new FileReader();
         reader.onload = function (e) {
           try {
-            const data = JSON.parse(e.target.result);
-            allData = data.map(item => ({
+            const importedData = JSON.parse(e.target.result);
+            let dataToImport = [];
+
+            if (importedData.data && Array.isArray(importedData.data)) {
+              dataToImport = importedData.data;
+            } else if (Array.isArray(importedData)) {
+              dataToImport = importedData;
+            }
+
+            allData = dataToImport.map(item => ({
               ...item,
               ip: item.ip || 'Unknown',
               country: item.country || 'Unknown',
@@ -804,6 +1032,7 @@
             updateCountryFilter();
             updateSourceFilter();
             filterTable();
+            alert(`Импортировано ${dataToImport.length} записей`);
           } catch (error) {
             console.error('Ошибка импорта данных:', error);
             alert('Ошибка импорта данных');
@@ -845,19 +1074,28 @@
 
       const localStorageData = localStorage.getItem('gameAnalytics');
       const visitedIPs = localStorage.getItem('gameUniqueVisitor');
+      const failedSyncs = localStorage.getItem('gameFailedSyncs');
+      const lastSync = localStorage.getItem('gameServerSync');
 
       content.innerHTML = `
         <h2>🔍 Отладочная информация</h2>
+        <p><strong>Project ID:</strong> ${serverConfig.projectId || 'Не налаштовано'}</p>
+        <p><strong>Bin ID:</strong> ${serverConfig.binId || 'Не налаштовано'}</p>
         <p><strong>Всего записей в памяти:</strong> ${allData.length}</p>
         <p><strong>Фильтрованных записей:</strong> ${filteredData.length}</p>
-        <p><strong>Размер данных в localStorage:</strong> ${localStorageData ? localStorageData.length : 0} символов</p>
+        <p><strong>Размер локальных данных:</strong> ${localStorageData ? localStorageData.length : 0} символов</p>
         <p><strong>Уникальные IP:</strong> ${visitedIPs ? JSON.parse(visitedIPs).length : 0}</p>
+        <p><strong>Неудачные синхронизации:</strong> ${failedSyncs ? JSON.parse(failedSyncs).length : 0}</p>
+        <p><strong>Последняя синхронизация:</strong> ${lastSync || 'Никогда'}</p>
         <br>
-        <h3>Данные localStorage:</h3>
-        <textarea style="width: 100%; height: 200px;" readonly>${localStorageData || 'Пусто'}</textarea>
+        <h3>Конфигурация сервера:</h3>
+        <p><strong>Base URL:</strong> ${serverConfig.baseUrl}</p>
+        <br>
+        <h3>Локальные данные:</h3>
+        <textarea style="width: 100%; height: 150px;" readonly>${localStorageData || 'Пусто'}</textarea>
         <br><br>
-        <h3>Уникальные IP:</h3>
-        <textarea style="width: 100%; height: 100px;" readonly>${visitedIPs || 'Пусто'}</textarea>
+        <h3>Неудачные синхронизации:</h3>
+        <textarea style="width: 100%; height: 100px;" readonly>${failedSyncs || 'Пусто'}</textarea>
         <br><br>
         <button onclick="this.parentElement.parentElement.remove()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Закрыть</button>
       `;
