@@ -195,6 +195,9 @@ class GameAnalytics {
 		const ipInfo = await this.getIpInfo()
 		Object.assign(this.sessionData, ipInfo)
 
+		// Добавляем отладочную информацию
+		console.log('Analytics initialized:', this.sessionData)
+
 		// Проверяем уникальность посетителя по IP
 		this.trackUniqueVisitor()
 	}
@@ -205,6 +208,10 @@ class GameAnalytics {
 		)
 		const currentIP = this.sessionData.ip
 
+		// Добавляем отладочную информацию
+		console.log('Current IP:', currentIP)
+		console.log('Visited IPs:', visitedIPs)
+
 		// Проверяем, был ли уже такой IP
 		const isUniqueVisitor = !visitedIPs.includes(currentIP)
 
@@ -212,6 +219,7 @@ class GameAnalytics {
 			visitedIPs.push(currentIP)
 			localStorage.setItem(this.uniqueVisitorKey, JSON.stringify(visitedIPs))
 
+			console.log('Recording unique visitor')
 			// Записываем визит только для уникальных IP
 			this.trackEvent('visit', 'page_visit', {
 				isUniqueVisitor: true,
@@ -225,6 +233,7 @@ class GameAnalytics {
 			const visitsFromThisIP =
 				existingData.filter(item => item.ip === currentIP).length + 1
 
+			console.log('Recording repeat visitor, visit #', visitsFromThisIP)
 			this.trackEvent('visit', 'page_visit', {
 				isUniqueVisitor: false,
 				totalVisitsFromThisIP: visitsFromThisIP,
@@ -243,6 +252,8 @@ class GameAnalytics {
 			pageTitle: document.title,
 		}
 
+		console.log('Tracking event:', eventData)
+
 		// Получаем существующие данные
 		const existingData = JSON.parse(
 			localStorage.getItem(this.analyticsKey) || '[]'
@@ -255,6 +266,36 @@ class GameAnalytics {
 		}
 
 		localStorage.setItem(this.analyticsKey, JSON.stringify(existingData))
+
+		// Также пытаемся отправить данные на централизованный сервер (если доступен)
+		this.syncToServer(eventData)
+	}
+
+	// Попытка синхронизации с сервером (для объединения данных с разных устройств)
+	async syncToServer(eventData) {
+		try {
+			// Используем простой API для сохранения данных
+			// Можно заменить на ваш реальный API
+			const response = await fetch('https://api.jsonbin.io/v3/b', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-Master-Key':
+						'$2a$10$Vu6QKl3.JJ2ZQSn.YMGQNejkOB5bF9sLj2PU1Y2zl7O8hJCZVp3Jm', // Демо-ключ
+				},
+				body: JSON.stringify({
+					timestamp: eventData.timestamp,
+					data: eventData,
+					site: 'aviamasters',
+				}),
+			})
+
+			if (response.ok) {
+				console.log('Data synced to server')
+			}
+		} catch (error) {
+			console.log('Server sync failed (normal for demo):', error.message)
+		}
 	}
 
 	trackClick(elementType, elementText, url = null) {
